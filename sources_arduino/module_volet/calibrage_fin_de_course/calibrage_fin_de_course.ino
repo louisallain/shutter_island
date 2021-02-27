@@ -27,7 +27,7 @@ float readShutterTension(float tension) {
 /**
  * Initialise le temps de course du volet (en ms).
  */
-void initShutterTravelTime() {
+unsigned long initShutterTravelTime() {
   float tension = 12.00;
   unsigned long t1;
   t1 = millis();
@@ -37,22 +37,42 @@ void initShutterTravelTime() {
 
 /**
  * Ouvre ou ferme le volet selon le pourcentage en paramètre.
- * Définit si c'est une ouverture ou une fermeture en fonction de la valeur courante @shutterTravelPercentage.
- * Renvoi 1 si ok, 2 si la valeur donnée n'est pas correcte, 3 si la valeur courante est égale à la valeur donnée.
+ * Définit si c'est une ouverture ou une fermeture.
  */
-int setTravelPercentage(unsigned short int travelPercentage) {
-  if(travelPercentage < 0 || travelPercentage > 100) return 2;
-  if(travelPercentage == shutterTravelPercentage) return 3;
-  boolean isOpening = (travelPercentage < shutterTravelPercentage);
+unsigned short int travelShutterFor(unsigned short int travelPercentage, unsigned long shutterTravelTimeTotal, unsigned short int currentTravelPercentage) {
+
+  if(travelPercentage == currentTravelPercentage) return travelPercentage;
+  short int deltaPercentage = currentTravelPercentage - travelPercentage;
+  unsigned long travelTime = computeTravelTime(shutterTravelTimeTotal, abs(deltaPercentage));
+  boolean isOpenningTravel = travelPercentage < currentTravelPercentage;
+  Serial.println("isOpenning : ");
+  Serial.println(isOpenningTravel);
+  Serial.println("durée : ");
+  Serial.println(travelTime);
 
   // TODO allumer l'un ou l'autre relais selon si c'est l'ouverture ou fermeture pendant x temps où x correspond au temps calculé selon le pourcentage donnée et en fonction du temps de course total.
+  // Pour l'instant simulation en allumant une led
+  digitalWrite(LED_BUILTIN, HIGH); 
+  delay(travelTime);         
+  digitalWrite(LED_BUILTIN, LOW);
+
+  return travelPercentage;
+}
+
+/**
+ * Calcul le temps de course selon le pourcentage de course souhaité.
+ */
+unsigned long computeTravelTime(unsigned long shutterTravelTimeTotal, unsigned short int percentage) {
+  return (float)percentage / 100 * shutterTravelTimeTotal;
 }
 
 void setup() {
   Serial.begin(115200);
+  pinMode(LED_BUILTIN, OUTPUT);
+  
   shutterTravelTime = initShutterTravelTime();
   Serial.println("Temps de course en ms : ");
-  Serial.print(shutterTravelTime);
+  Serial.println(shutterTravelTime);
 }
 
 /**
@@ -60,6 +80,17 @@ void setup() {
  * afin de calculer le temps de course du volet.
  */
 void loop() {
-  
-  
+
+  delay(1000);
+  // Important de mettre à jour le pourcentage d'ouverture courant pour vérifier si c'est une ouverture ou une fermeture ou si c'est déjà la valeur courante.
+  shutterTravelPercentage = travelShutterFor(100, shutterTravelTime, shutterTravelPercentage);
+  delay(1000);
+  shutterTravelPercentage = travelShutterFor(50, shutterTravelTime, shutterTravelPercentage);
+  delay(1000);
+  shutterTravelPercentage = travelShutterFor(100, shutterTravelTime, shutterTravelPercentage);
+  delay(1000);
+  shutterTravelPercentage = travelShutterFor(0, shutterTravelTime, shutterTravelPercentage);
+  delay(1000);
+  shutterTravelPercentage = travelShutterFor(33, shutterTravelTime, shutterTravelPercentage);
+  delay(1000);
 }
